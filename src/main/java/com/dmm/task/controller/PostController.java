@@ -1,6 +1,7 @@
 package com.dmm.task.controller;
 
 import java.time.LocalDateTime;
+import java.util.Calendar;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,30 +21,34 @@ import com.dmm.task.data.entity.Posts;
 import com.dmm.task.form.PostForm;
 import com.dmm.task.repository.PostsRepository;
 import com.dmm.task.service.AccountUserDetails;
+import com.dmm.task.service.AccountUserDetailsService;
 
 @Controller
-@RequestMapping(value = "topPage")
 public class PostController {
 
 	@Autowired
-	private ScheduleService scheduleService;
+	private PostsRepository repo;
+
+
+	@Autowired
+	private AccountUserDetailsService scheduleService;
 
 	@Autowired
 	private User user;
-
 	@RequestMapping(value = "getPage", method = RequestMethod.GET)
 	public String getPage(PostForm form, Model model) {
 
 		Calendar rightNow = Calendar.getInstance();
+		@SuppressWarnings("unused")
 		int day = rightNow.get(Calendar.DATE);
 		int year = rightNow.get(Calendar.YEAR);
 		int month = rightNow.get(Calendar.MONTH);
 
-/* 今月のはじまり */
+		/* 今月のはじまり */
 		rightNow.set(year, month, 1);
 		int startWeek = rightNow.get(Calendar.DAY_OF_WEEK);
 
-/* 先月分の日数 */
+		/* 先月分の日数 */
 		rightNow.set(year, month, 0);
 		int beforeMonthlastDay = rightNow.get(Calendar.DATE);
 
@@ -52,7 +56,7 @@ public class PostController {
 		rightNow.set(year, month + 1, 0);
 		int thisMonthlastDay = rightNow.get(Calendar.DATE);
 
-		int[] calendarDay = new int[42];		/* 最大で7日×6週 */
+		int[] calendarDay = new int[42]; /* 最大で7日×6週 */
 		int count = 0;
 
 		for (int i = startWeek - 2; i >= 0; i--) {
@@ -77,10 +81,12 @@ public class PostController {
 				} else {
 					System.out.print(calendarDay[j] + " ");
 				}
-			
-			System.out.println():
 			}
-		
+		}
+		return null;
+	}
+
+
 
 	/**
 	 * 投稿を作成.
@@ -122,5 +128,21 @@ public class PostController {
 	public String delete(@PathVariable Integer id) {
 		repo.deleteById(id);
 		return "redirect:/posts";
+	}
+
+	public AccountUserDetailsService getScheduleService() {
+		return scheduleService;
+	}
+
+	public void setScheduleService(AccountUserDetailsService scheduleService) {
+		this.scheduleService = scheduleService;
+	}
+
+	public User getUser() {
+		return user;
+	}
+
+	public void setUser(User user) {
+		this.user = user;
 	}
 }
