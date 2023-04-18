@@ -1,11 +1,10 @@
-package com.dmm.task.controller;
+ package com.dmm.task.controller;
 
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.SecurityProperties.User;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -33,8 +32,7 @@ public class PostController {
 	@Autowired
 	private AccountUserDetailsService scheduleService;
 
-	@Autowired
-	private User user;
+
 	@RequestMapping(value = "getPage", method = RequestMethod.GET)
 	public String getPage(PostForm form, Model model) {
 
@@ -98,9 +96,8 @@ public class PostController {
 	@PostMapping("/posts/create")
 	public String create(@Validated PostForm postForm, BindingResult bindingResult,
 			@AuthenticationPrincipal AccountUserDetails user, Model model) {
-		// バリデーションの結果、エラーがあるかどうかチェック
 		if (bindingResult.hasErrors()) {
-			// エラーがある場合は投稿登録画面を返す
+			
 			List<Posts> list = repo.findAll(Sort.by(Sort.Direction.DESC, "id"));
 			model.addAttribute("posts", list);
 			model.addAttribute("postForm", postForm);
@@ -138,11 +135,5 @@ public class PostController {
 		this.scheduleService = scheduleService;
 	}
 
-	public User getUser() {
-		return user;
-	}
 
-	public void setUser(User user) {
-		this.user = user;
-	}
 }
