@@ -52,12 +52,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		// ログアウト設定
 		http.logout().logoutSuccessUrl("/loginForm") // ログアウト成功時に遷移するパス
 				.permitAll(); // 全ユーザに対して許可
-		
 	}
-    @Override
-	public void configure(WebSecurity web) throws Exception {
-		// 画像、JavaScript、cssは認可の対象外とする
-		web.debug(false).ignoring().antMatchers("/images/**", "/js/**", "/css/**");
-	}
-
+	 @Override
+		public void configure(WebSecurity web) throws Exception {
+			// 画像、JavaScript、cssは認可の対象外とする
+			web.debug(false).ignoring().antMatchers("/images/**", "/js/**", "/css/**");
+		}
 }

@@ -1,7 +1,9 @@
  package com.dmm.task.controller;
 
+ import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,129 +13,116 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.dmm.task.data.entity.Posts;
+import com.dmm.task.data.repository.PostsRepository;
 import com.dmm.task.form.PostForm;
-import com.dmm.task.repository.PostsRepository;
 import com.dmm.task.service.AccountUserDetails;
-import com.dmm.task.service.AccountUserDetailsService;
 
-@Controller
-public class PostController {
+ @Controller
+ public class PostController {
 
-	@Autowired
-	private PostsRepository repo;
-
-
-	@Autowired
-	private AccountUserDetailsService scheduleService;
-
-
-	@RequestMapping(value = "getPage", method = RequestMethod.GET)
-	public String getPage(PostForm form, Model model) {
-
-		Calendar rightNow = Calendar.getInstance();
-		@SuppressWarnings("unused")
-		int day = rightNow.get(Calendar.DATE);
-		int year = rightNow.get(Calendar.YEAR);
-		int month = rightNow.get(Calendar.MONTH);
-
-		/* 今月のはじまり */
-		rightNow.set(year, month, 1);
-		int startWeek = rightNow.get(Calendar.DAY_OF_WEEK);
-
-		/* 先月分の日数 */
-		rightNow.set(year, month, 0);
-		int beforeMonthlastDay = rightNow.get(Calendar.DATE);
-
-		/* 今月分の日数 */
-		rightNow.set(year, month + 1, 0);
-		int thisMonthlastDay = rightNow.get(Calendar.DATE);
-
-		int[] calendarDay = new int[42]; /* 最大で7日×6週 */
-		int count = 0;
-
-		for (int i = startWeek - 2; i >= 0; i--) {
-			calendarDay[count++] = beforeMonthlastDay - i;
-		}
-
-		for (int i = 1; i <= thisMonthlastDay; i++) {
-			calendarDay[count++] = i;
-		}
-
-		int nextMonthDay = 1;
-		while (count % 7 != 0) {
-			calendarDay[count++] = nextMonthDay++;
-		}
-
-		int weekCount = count / 7;
-
-		for (int i = 0; i < weekCount; i++) {
-			for (int j = i * 7; j < i * 7 + 7; j++) {
-				if (calendarDay[j] < 10) {
-					System.out.print(" " + calendarDay[j] + " ");
-				} else {
-					System.out.print(calendarDay[j] + " ");
-				}
-			}
-		}
-		return null;
-	}
-
-
+ 	@Autowired
+ 	private PostsRepository repo;
 
 	/**
-	 * 投稿を作成.
+	 * 投稿の一覧表示.
 	 * 
-	 * @param postForm 送信データ
-	 * @param user     ユーザー情報
+	 * @param model モデル
 	 * @return 遷移先
 	 */
-	@PostMapping("/posts/create")
-	public String create(@Validated PostForm postForm, BindingResult bindingResult,
-			@AuthenticationPrincipal AccountUserDetails user, Model model) {
-		if (bindingResult.hasErrors()) {
-			
-			List<Posts> list = repo.findAll(Sort.by(Sort.Direction.DESC, "id"));
-			model.addAttribute("posts", list);
-			model.addAttribute("postForm", postForm);
-			return "/posts";
-		}
+ 	@GetMapping("/posts")
+ 	public String getCalendar(Model model) {
+ 	    // 逆順で投稿をすべて取得する
+ 	    List<Posts> list = repo.findAll(Sort.by(Sort.Direction.DESC, "id"));
+ 	    // Collections.reverse(list); //普通に取得してこちらの処理でもOK
+ 	    model.addAttribute("posts", list);
+ 	    // 1. 2次元表になるので、ListのListを用意する
+ 	    List<List<LocalDate>> month = new ArrayList<>();
 
-		Posts post = new Posts();
-		post.setName(user.getName());
-		post.setTitle(postForm.getTitle());
-		post.setText(postForm.getText());
-		post.setDate(LocalDateTime.now());
+ 	    // 2. 1週間分のLocalDateを格納するListを用意する
+ 	    List<LocalDate> week = new ArrayList<>();
 
-		repo.save(post);
+ 	    // 3. その月の1日のLocalDateを取得する
+ 	    LocalDate day = LocalDate.now();
+ 	    day = LocalDate.of(day.getYear(), day.getMonthValue(), 1);
 
-		return "redirect:/posts";
-	}
+ 	    // 4. 曜日を表すDayOfWeekを取得し、上で取得したLocalDateに曜日の値（DayOfWeek#getValue)をマイナスして前月分のLocalDateを求める
+ 	    DayOfWeek w = day.getDayOfWeek();
+ 	    day = day.minusDays(w.getValue() - 1);    // これでdayには3/28が入る
 
-	/**
-	 * 投稿を削除する
-	 * 
-	 * @param id 投稿ID
-	 * @return 遷移先
-	 */
-	@PostMapping("/posts/delete/{id}")
-	public String delete(@PathVariable Integer id) {
-		repo.deleteById(id);
-		return "redirect:/posts";
-	}
+ 	    // 5. 1日ずつ増やしてLocalDateを求めていき、2．で作成したListへ格納していき、1週間分詰めたら1．のリストへ格納する
+ 	    for(int i = 1; i <= 7; i++) {
+ 	        week.add(day);
+ 	        day = day.plusDays(1);
+ 	    }
+ 	    month.add(week);
+ 	    week = new ArrayList<>();    // 次週分のリストを用意
 
-	public AccountUserDetailsService getScheduleService() {
-		return scheduleService;
-	}
+ 	    // 6. 2週目以降は単純に1日ずつ日を増やしながらLocalDateを求めてListへ格納していき、土曜日になったら1．のリストへ格納して新しいListを生成する（月末を求めるにはLocalDate#lengthOfMonth()を使う）
+ 	    while(day.getMonthValue() == LocalDate.now().getMonthValue()) {
+ 	        week.add(day);
+ 	        if(day.getDayOfWeek() == DayOfWeek.SATURDAY) {
+ 	            month.add(week);
+ 	            week = new ArrayList<>();
+ 	        }
+ 	        day = day.plusDays(1);
+ 	    }
 
-	public void setScheduleService(AccountUserDetailsService scheduleService) {
-		this.scheduleService = scheduleService;
-	}
+ 	    // 7. 最終週の翌月分をDayOfWeekの値を使って計算し、6．で生成したリストへ格納し、最後に1．で生成したリストへ格納する
+ 	    if(!week.isEmpty()) {
+ 	        while(week.size() < 7) {
+ 	            week.add(day);
+ 	            day = day.plusDays(1);
+ 	        }
+ 	        month.add(week);
+ 	    }
 
+ 	    model.addAttribute("matrix", month);
+ 	    return "/posts";
+ 	}
+ 	/**
+ 	 * 投稿を作成.
+ 	 * 
+ 	 * @param postForm 送信データ
+ 	 * @param user     ユーザー情報
+ 	 * @return 遷移先
+ 	 */
+ 	@PostMapping("/posts/create")
+ 	public String create(@Validated PostForm postForm, BindingResult bindingResult,
+ 			@AuthenticationPrincipal AccountUserDetails user, Model model) {
+ 		// バリデーションの結果、エラーがあるかどうかチェック
+ 		if (bindingResult.hasErrors()) {
+ 			// エラーがある場合は投稿登録画面を返す
+ 			List<Posts> list = repo.findAll(Sort.by(Sort.Direction.DESC, "id"));
+ 			model.addAttribute("posts", list);
+ 			model.addAttribute("postForm", postForm);
+ 			return "/posts";
+ 		}
 
-}
+ 		Posts post = new Posts();
+ 		post.setName(user.getName());
+ 		post.setTitle(postForm.getTitle());
+ 		post.setText(postForm.getText());
+ 		post.setDate(LocalDateTime.now());
+
+ 		repo.save(post);
+
+ 		return "redirect:/posts";
+ 	}
+
+ 	/**
+ 	 * 投稿を削除する
+ 	 * 
+ 	 * @param id 投稿ID
+ 	 * @return 遷移先
+ 	 */
+ 	@PostMapping("/posts/delete/{id}")
+ 	public String delete(@PathVariable Integer id) {
+ 		repo.deleteById(id);
+ 		return "redirect:/posts";
+ 	}
+ }
