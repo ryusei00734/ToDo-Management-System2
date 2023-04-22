@@ -97,6 +97,21 @@ public class TaskController {
 	 * @param user     ユーザー情報
 	 * @return 遷移先
 	 */
+	  /**
+	   * タスクの新規作成画面.
+	   * @param model モデル
+	   * @param date 追加対象日
+	   * @return
+	   */
+	@GetMapping("/main/create/{date}")
+	public String create(@PathVariable String date, Model model) {
+	    TaskForm taskForm = new TaskForm();
+	    model.addAttribute("taskForm", taskForm);
+	    model.addAttribute("date", date);
+	    return "create";
+	}
+	    // create.htmlを表示してください。
+	  
 	@PostMapping("/tasks/create")
 	public String create(@Validated TaskForm taskForm, BindingResult bindingResult,
 			@AuthenticationPrincipal AccountUserDetails user, Model model) {
