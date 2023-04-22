@@ -19,4 +19,8 @@ public class Tasks {
 	private String name;
 	private String text;
 	private LocalDateTime date;
+	public LocalDateTime getDeadline() {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
 }
