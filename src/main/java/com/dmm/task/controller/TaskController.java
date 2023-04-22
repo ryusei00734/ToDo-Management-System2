@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -41,9 +42,11 @@ public class TaskController {
 		LocalDate today = LocalDate.now();
 		LocalDate firstDayOfMonth = today.withDayOfMonth(1);
 
+
 		int daysInMonth = firstDayOfMonth.lengthOfMonth();
 		DayOfWeek firstDayOfWeek = firstDayOfMonth.getDayOfWeek();
 		int offset = firstDayOfWeek.getValue() % 7;
+
 
 		LocalDate start = firstDayOfMonth.minusDays(offset);
 		LocalDate end = firstDayOfMonth.plusDays(daysInMonth).plusDays(6 - ((daysInMonth + offset - 1) % 7));
@@ -121,6 +124,33 @@ public class TaskController {
 	 * @param id 投稿ID
 	 * @return 遷移先
 	 */
+	  @Autowired
+	  @GetMapping("/main/edit/{id}")
+	  public String edit(@PathVariable Integer id, Model model) {
+	      Optional<Tasks> optionalTask = repo.findById(id);
+	      if (optionalTask.isPresent()) {
+	          Tasks task = optionalTask.get();
+	          model.addAttribute("taskForm", new TaskForm(task.getTitle(), task.getText()));
+	          return "edit";
+	      } else {
+	          return "redirect:/tasks";
+	      }
+	  }
+
+	  @PostMapping("/main/edit/{id}")
+	  public String update(@PathVariable Integer id, @Validated TaskForm taskForm, BindingResult bindingResult, Model model) {
+	      if (bindingResult.hasErrors()) {
+	          return "edit";
+	      }
+	      Optional<Tasks> optionalTask = repo.findById(id);
+	      if (optionalTask.isPresent()) {
+	          Tasks task = optionalTask.get();
+	          task.setTitle(taskForm.getTitle());
+	          task.setText(taskForm.getText());
+	          repo.save(task);
+	      }
+	      return "redirect:/tasks";
+	  }
 	  
 	  
 	@PostMapping("/tasks/delete/{id}")
